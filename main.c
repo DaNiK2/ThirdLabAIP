@@ -5,7 +5,6 @@
 
 #define BASE 65536
 
-
 void test_print(uint16_t *massive, int num) {
     printf("-----\n");
     for (int i = 0; i < num; i++) {
@@ -14,28 +13,56 @@ void test_print(uint16_t *massive, int num) {
     printf("-----\n");
 }
 
-void printer(unsigned short* num, int size) { //дописать функцию
+void printer(unsigned short* num, int size) {
     if (num[0] == 1) {
         printf("-");
     }
 
-    char digits[500] = {};
+    if (size == 2 && num[1] == 0) {
+        printf("0\n");
+        return;
+    }
 
-    while (size - 1 > 0) {
+    char digits[1000];
+    int count = 0;
+
+    unsigned short *temp = malloc(size * sizeof(unsigned short));
+    for (int i = 0; i < size; i++) {
+        temp[i] = num[i];
+    }
+
+    int current_size = size;
+
+    while (current_size > 1) {
         int rem = 0;
-        for (int i = size - 1; i > 0; i--) {
-            unsigned int cur = rem * BASE + num[i];
-            num[i] = cur / 10;
+
+        for (int i = current_size - 1; i >= 1; i--) {
+            unsigned int cur = rem * BASE + temp[i];
+            temp[i] = (unsigned short)(cur / 10);
             rem = cur % 10;
         }
+
+        digits[count] = rem + '0';
+        count++;
+
+        while (current_size > 1 && temp[current_size - 1] == 0) {
+            current_size--;
+        }
     }
+
+    for (int i = count - 1; i >= 0; i--) {
+        printf("%c", digits[i]);
+    }
+    printf("\n");
+
+    free(temp);
 }
 
-int splitter(char *num, unsigned short *digits, int blocks) { //blocks прикрутить
+int splitter(char *num, unsigned short *digits, int blocks) {
     int start = 0;
     digits[0] = 0;
     if (num[0] == '-') {
-        digits[start] = 1;
+        digits[0] = 1;
         start = 1;
     } else if (num[0] == '+') {
         start = 1;
@@ -81,10 +108,10 @@ int compare(unsigned short *num1, int parts_num1, unsigned short *num2, int part
     return 0;
 }
 
-unsigned short * sum(unsigned short *num1, int parts_num1, unsigned short *num2, int parts_num2, int * out_size) { //проблема переполнения
+unsigned short * sum(unsigned short *num1, int parts_num1, unsigned short *num2, int parts_num2, int * out_size) {
     int res_size = (parts_num1 > parts_num2) ? parts_num1 : parts_num2;
-    res_size+= 1;
-    unsigned short * res = calloc(res_size, sizeof (unsigned short));
+    res_size += 1;
+    unsigned short * res = calloc(res_size, sizeof(unsigned short));
     res[0] = num1[0];
     unsigned short carry = 0;
 
@@ -96,7 +123,8 @@ unsigned short * sum(unsigned short *num1, int parts_num1, unsigned short *num2,
         res[i] = (unsigned short)(sum % BASE);
         carry = sum / BASE;
     }
-    if (res_size > 2 && res[res_size - 1] == 0) {
+
+    while (res_size > 2 && res[res_size - 1] == 0) {
         res_size--;
     }
     *out_size = res_size;
@@ -104,8 +132,8 @@ unsigned short * sum(unsigned short *num1, int parts_num1, unsigned short *num2,
 }
 
 unsigned short * diff(unsigned short *num1, int parts_num1, unsigned short *num2, int parts_num2, int *out_size) {
-    int res_size = (parts_num1 > parts_num2)? parts_num1 : parts_num2;
-    unsigned short *res = calloc(res_size, sizeof (unsigned short));
+    int res_size = (parts_num1 > parts_num2) ? parts_num1 : parts_num2;
+    unsigned short *res = calloc(res_size, sizeof(unsigned short));
     unsigned short borrow = 0;
     for (int i = 1; i < res_size; i++) {
         unsigned short d1 = (i < parts_num1) ? num1[i] : 0;
@@ -132,10 +160,10 @@ unsigned short* sub(unsigned short *num1, int parts_num1, unsigned short *num2, 
     if (compare(num1, parts_num1, num2, parts_num2) == 1) {
         return diff(num1, parts_num1, num2, parts_num2, out_size);
     }
-    if(compare(num1, parts_num1, num2, parts_num2) == -1) {
+    if (compare(num1, parts_num1, num2, parts_num2) == -1) {
         return diff(num2, parts_num2, num1, parts_num1, out_size);
     }
-    unsigned short * res = calloc(2, sizeof (unsigned short));
+    unsigned short * res = calloc(2, sizeof(unsigned short));
     *out_size = 0;
     return res;
 }
@@ -148,18 +176,18 @@ unsigned short * add(unsigned short *num1, int parts_num1, unsigned short *num2,
     if (compare(num1, parts_num1, num2, parts_num2) == 1) {
         return diff(num1, parts_num1, num2, parts_num2, out_size);
     }
-    if(compare(num1, parts_num1, num2, parts_num2) == -1) {
+    if (compare(num1, parts_num1, num2, parts_num2) == -1) {
         return diff(num2, parts_num2, num1, parts_num1, out_size);
     }
-    unsigned short * res = calloc(2, sizeof (unsigned short));
+    unsigned short * res = calloc(2, sizeof(unsigned short));
     *out_size = 0;
     return res;
 }
 
 unsigned short * multiply(unsigned short *num1, int parts_num1, unsigned short *num2, int parts_num2, int *out_size) {
-    int size = parts_num1  + parts_num2;
+    int size = parts_num1 + parts_num2;
 
-    unsigned short *result = calloc(size, sizeof (unsigned short));
+    unsigned short *result = calloc(size, sizeof(unsigned short));
 
     result[0] = num1[0] == num2[0] ? 0 : 1;
 
@@ -191,8 +219,8 @@ unsigned short * power(unsigned short *num1, int parts_num1, unsigned int exp, i
     if (exp % 2 == 1 && num1[0] == 1) {
         flag = 1;
     }
-    int res_size;
-    unsigned short *res  = malloc(2 * sizeof (unsigned short));
+    int res_size = 2;
+    unsigned short *res = malloc(2 * sizeof(unsigned short));
     res[0] = 0;
     res[1] = 1;
 
@@ -202,7 +230,7 @@ unsigned short * power(unsigned short *num1, int parts_num1, unsigned int exp, i
     }
 
     int size = parts_num1;
-    unsigned short *num = malloc(size * sizeof (unsigned short));
+    unsigned short *num = malloc(size * sizeof(unsigned short));
     for (int i = 0; i < parts_num1; i++) {
         num[i] = num1[i];
     }
@@ -214,6 +242,7 @@ unsigned short * power(unsigned short *num1, int parts_num1, unsigned int exp, i
             unsigned short *new_num = multiply(res, res_size, num, size, &new_size);
             free(res);
             res = new_num;
+            res_size = new_size;
         }
 
         exp /= 2;
@@ -222,6 +251,7 @@ unsigned short * power(unsigned short *num1, int parts_num1, unsigned int exp, i
             unsigned short *next_num = multiply(num, size, num, size, &next_size);
             free(num);
             num = next_num;
+            size = next_size;
         }
     }
 
@@ -229,21 +259,23 @@ unsigned short * power(unsigned short *num1, int parts_num1, unsigned int exp, i
         res[0] = 1;
     }
 
-    *out_size = size;
+    *out_size = res_size;
     return res;
 }
 
 unsigned short * factorial(unsigned short *num1, int parts_num1, int *out_size) {
     int res_size = 2;
-    unsigned short *res = malloc(3 * sizeof (unsigned short));
+    unsigned short *res = malloc(3 * sizeof(unsigned short));
     unsigned int n = num1[1];
     res[0] = 0;
     res[1] = 1;
+
     if (num1[0] == 1) {
-        printf("Факториал отрицательного числа неопределён!\n");
+        printf("Error: factorial of negative number is undefined\n");
         *out_size = res_size;
         return res;
     }
+
     int too_big = 0;
     for (int i = 2; i < parts_num1; i++) {
         if (num1[i] != 0) {
@@ -251,12 +283,13 @@ unsigned short * factorial(unsigned short *num1, int parts_num1, int *out_size) 
             break;
         }
     }
+
     if (n > 810 || too_big) {
-        printf("Число для вычисления слишком большое!\n");
+        printf("Error: number is too big\n");
         *out_size = res_size;
         return res;
     }
-    printf("%d\n", n);
+
     for (int i = 2; i <= n; i++) {
         unsigned short mult[3];
         int size = 0;
@@ -285,41 +318,37 @@ unsigned short * factorial(unsigned short *num1, int parts_num1, int *out_size) 
 
 void devide_by_two(unsigned short *num, int parts_num1) {
     unsigned int carry = 0;
-    for (int i = parts_num1 - 1; i >= 1; i++) {
+    for (int i = parts_num1 - 1; i >= 1; i--) {
         int cur = (carry * BASE) + num[i];
         num[i] = (unsigned short)(cur / 2);
         carry = cur % 2;
     }
 }
-/**
-unsigned short * row(unsigned short *num1, int parts_num1, unsigned short *num2, int parts_num2, int *out_size) {
-    unsigned short *res = malloc(2 * sizeof (unsigned short));
-    int res_size = 2;
-    if (parts_num1 > 1000 || parts_num2 > 1000) {
-        printf("Слишком большие числа!\n");
-        *out_size = 2;
-        return res;
-    }
 
-    //Реализовать функцию сравнения, т.к. если число A > B, то начало отрезка больше его конца и их надо поменять местами
-
-    unsigned short *num1copy = malloc(2 * sizeof (unsigned short));
-    num1copy = num1;
-    int size_num_copy = add(num1copy, 2, num2, parts_num2);
-
-
-
-}
-**/
 int main(void) {
     char num[] = "-2";
     size_t len = strlen(num);
     int size = (len / 4) + 2;
     unsigned short *digits = malloc(size * sizeof(unsigned short));
-    splitter(num, digits, size);
+
+    size = splitter(num, digits, size);
+
+    printf("Input number (internal):\n");
     test_print(digits, size);
-    unsigned short test_num[3] = {1,100, 0};
-    digits = add(digits, size, test_num, 3, &size);
-    //digits = power(digits, size, 3, &size);
-    test_print(digits, size);
+    printf("Input number (decimal): ");
+    printer(digits, size);
+
+    unsigned short test_num[3] = {0, 100, 0};
+
+    int res_size;
+    unsigned short *result = add(digits, size, test_num, 3, &res_size);
+
+    printf("\nResult (internal):\n");
+    test_print(result, res_size);
+    printf("Result (decimal): ");
+    printer(result, res_size);
+
+    free(digits);
+    free(result);
+    return 0;
 }
