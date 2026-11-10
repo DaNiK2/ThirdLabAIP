@@ -1,4 +1,4 @@
-#include <stdint.h>
+#include <math.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -6,7 +6,7 @@
 #define BASE 65536
 
 
-void test_print(uint16_t *massive, int num) {
+void test_print(unsigned short *massive, int num) {
     printf("-----\n");
     for (int i = 0; i < num; i++) {
         printf("%u -- 65536^%d\n", massive[i], i - 1);
@@ -14,24 +14,63 @@ void test_print(uint16_t *massive, int num) {
     printf("-----\n");
 }
 
-void printer(unsigned short* num, int size) { //дописать функцию
+void printer(unsigned short* num, int size) {
     if (num[0] == 1) {
         printf("-");
     }
 
-    char digits[500] = {};
+    if (size == 2 && num[1] == 0) {
+        printf("0\n");
+        return;
+    }
 
-    while (size - 1 > 0) {
+    char digits[1000];
+    int count = 0;
+
+    unsigned short *temp = malloc(size * sizeof(unsigned short));
+    if (!temp) {
+        printf("malloc failed\n");
+        return;
+    }
+    for (int i = 0; i < size; i++) {
+        temp[i] = num[i];
+    }
+
+    int current_size = size;
+
+    while (current_size > 1) {
         int rem = 0;
-        for (int i = size - 1; i > 0; i--) {
-            unsigned int cur = rem * BASE + num[i];
-            num[i] = cur / 10;
+
+        for (int i = current_size - 1; i >= 1; i--) {
+            unsigned int cur = rem * BASE + temp[i];
+            temp[i] = (unsigned short)(cur / 10);
             rem = cur % 10;
         }
+
+        digits[count] = rem + '0';
+        count++;
+
+        while (current_size > 1 && temp[current_size - 1] == 0) {
+            current_size--;
+        }
     }
+
+    for (int i = count - 1; i >= 0; i--) {
+        printf("%c", digits[i]);
+    }
+    printf("\n");
+
+    free(temp);
 }
 
-int splitter(char *num, unsigned short *digits, int blocks) { //blocks прикрутить
+
+unsigned short* splitter(char *num, int *out_size) {
+    int blocks = (strlen(num) / 4) + 2;
+    unsigned short * digits = calloc(blocks, sizeof(unsigned short));
+    if (!digits) {
+        printf("calloc failed\n");
+        return NULL;
+    }
     int start = 0;
     digits[0] = 0;
     if (num[0] == '-') {
@@ -47,19 +86,23 @@ int splitter(char *num, unsigned short *digits, int blocks) { //blocks прик�
     for (int i = start; num[i] != '\0'; i++) {
         unsigned short carry = num[i] - '0';
 
-        for (int j = 1; j < size + 1; j++) {
+        for (int j = 1; j < size; j++) {
             unsigned int cur = (unsigned int)digits[j] * 10 + carry;
             digits[j] = cur % BASE;
             carry = cur / BASE;
         }
 
         if (carry > 0) {
-            digits[size] = carry;
+            digits[size] = (unsigned short)carry;
             size++;
         }
     }
+    if (size == 2 && digits[1] == 0) {
+        digits[0] = 0;
+    }
 
-    return size;
+    *out_size = size;
+    return digits;
 }
 
 int compare(unsigned short *num1, int parts_num1, unsigned short *num2, int parts_num2) {
@@ -85,6 +128,10 @@ unsigned short * sum(unsigned short *num1, int parts_num1, unsigned short *num2,
     int res_size = (parts_num1 > parts_num2) ? parts_num1 : parts_num2;
     res_size+= 1;
     unsigned short * res = calloc(res_size, sizeof (unsigned short));
+    if (!res) {
+        printf("calloc failed\n");
+        return NULL;
+    }
     res[0] = num1[0];
     unsigned short carry = 0;
 
@@ -106,6 +153,11 @@ unsigned short * sum(unsigned short *num1, int parts_num1, unsigned short *num2,
 unsigned short * diff(unsigned short *num1, int parts_num1, unsigned short *num2, int parts_num2, int *out_size) {
     int res_size = (parts_num1 > parts_num2)? parts_num1 : parts_num2;
     unsigned short *res = calloc(res_size, sizeof (unsigned short));
+    if (!res) {
+        printf("calloc failed\n");
+        return NULL;
+    }
+    res[0] = num1[0];
     unsigned short borrow = 0;
     for (int i = 1; i < res_size; i++) {
         unsigned short d1 = (i < parts_num1) ? num1[i] : 0;
@@ -119,6 +171,9 @@ unsigned short * diff(unsigned short *num1, int parts_num1, unsigned short *num2
     }
     while (res_size > 2 && res[res_size - 1] == 0) {
         res_size--;
+    }
+    if (res_size == 2 && res[1] == 0) {
+        res[0] = 0;
     }
     *out_size = res_size;
     return res;
@@ -136,7 +191,11 @@ unsigned short* sub(unsigned short *num1, int parts_num1, unsigned short *num2, 
         return diff(num2, parts_num2, num1, parts_num1, out_size);
     }
     unsigned short * res = calloc(2, sizeof (unsigned short));
-    *out_size = 0;
+    if (!res) {
+        printf("calloc failed\n");
+        return NULL;
+    }
+    *out_size = 2;
     return res;
 }
 
@@ -152,6 +211,10 @@ unsigned short * add(unsigned short *num1, int parts_num1, unsigned short *num2,
         return diff(num2, parts_num2, num1, parts_num1, out_size);
     }
     unsigned short * res = calloc(2, sizeof (unsigned short));
+    if (!res) {
+        printf("calloc failed\n");
+        return NULL;
+    }
     *out_size = 0;
     return res;
 }
@@ -160,6 +223,10 @@ unsigned short * multiply(unsigned short *num1, int parts_num1, unsigned short *
     int size = parts_num1  + parts_num2;
 
     unsigned short *result = calloc(size, sizeof (unsigned short));
+    if (!result) {
+        printf("calloc failed\n");
+        return NULL;
+    }
 
     result[0] = num1[0] == num2[0] ? 0 : 1;
 
@@ -191,8 +258,12 @@ unsigned short * power(unsigned short *num1, int parts_num1, unsigned int exp, i
     if (exp % 2 == 1 && num1[0] == 1) {
         flag = 1;
     }
-    int res_size;
+    int res_size = 2;
     unsigned short *res  = malloc(2 * sizeof (unsigned short));
+    if (!res) {
+        printf("malloc failed\n");
+        return NULL;
+    }
     res[0] = 0;
     res[1] = 1;
 
@@ -203,6 +274,10 @@ unsigned short * power(unsigned short *num1, int parts_num1, unsigned int exp, i
 
     int size = parts_num1;
     unsigned short *num = malloc(size * sizeof (unsigned short));
+    if (!num) {
+        printf("malloc failed\n");
+        return NULL;
+    }
     for (int i = 0; i < parts_num1; i++) {
         num[i] = num1[i];
     }
@@ -214,6 +289,7 @@ unsigned short * power(unsigned short *num1, int parts_num1, unsigned int exp, i
             unsigned short *new_num = multiply(res, res_size, num, size, &new_size);
             free(res);
             res = new_num;
+            res_size = new_size;
         }
 
         exp /= 2;
@@ -222,20 +298,25 @@ unsigned short * power(unsigned short *num1, int parts_num1, unsigned int exp, i
             unsigned short *next_num = multiply(num, size, num, size, &next_size);
             free(num);
             num = next_num;
+            size = next_size;
         }
     }
-
+    free(num);
     if (flag == 1) {
         res[0] = 1;
     }
 
-    *out_size = size;
+    *out_size = res_size;
     return res;
 }
 
 unsigned short * factorial(unsigned short *num1, int parts_num1, int *out_size) {
     int res_size = 2;
     unsigned short *res = malloc(3 * sizeof (unsigned short));
+    if (!res) {
+        printf("malloc failed\n");
+        return NULL;
+    }
     unsigned int n = num1[1];
     res[0] = 0;
     res[1] = 1;
@@ -283,17 +364,32 @@ unsigned short * factorial(unsigned short *num1, int parts_num1, int *out_size) 
     return res;
 }
 
-void devide_by_two(unsigned short *num, int parts_num1) {
-    unsigned int carry = 0;
-    for (int i = parts_num1 - 1; i >= 1; i++) {
-        int cur = (carry * BASE) + num[i];
-        num[i] = (unsigned short)(cur / 2);
-        carry = cur % 2;
+unsigned short * devide_by_two(unsigned short *num, int parts_num1, int *out_size) {
+    int res_size = parts_num1;
+    unsigned short *res = calloc(res_size, sizeof (unsigned short));
+    if (!res) {
+        printf("calloc failed\n");
+        return NULL;
     }
+    unsigned int carry = 0;
+    for (int i = res_size - 1; i > 0; i--) {
+        int cur = (carry * BASE) + num[i];
+        res[i] = (unsigned short)(cur / 2);
+        carry = (cur % 2);
+    }
+    while (res_size > 2 && res[res_size - 1] == 0) {
+        res_size--;
+    }
+    *out_size = res_size;
+    return res;
 }
-/**
+
 unsigned short * row(unsigned short *num1, int parts_num1, unsigned short *num2, int parts_num2, int *out_size) {
     unsigned short *res = malloc(2 * sizeof (unsigned short));
+    if (!res) {
+        printf("malloc failed\n");
+        return NULL;
+    }
     int res_size = 2;
     if (parts_num1 > 1000 || parts_num2 > 1000) {
         printf("Слишком большие числа!\n");
@@ -302,24 +398,91 @@ unsigned short * row(unsigned short *num1, int parts_num1, unsigned short *num2,
     }
 
     //Реализовать функцию сравнения, т.к. если число A > B, то начало отрезка больше его конца и их надо поменять местами
-
-    unsigned short *num1copy = malloc(2 * sizeof (unsigned short));
-    num1copy = num1;
-    int size_num_copy = add(num1copy, 2, num2, parts_num2);
-
-
-
+    unsigned short *temp1 = NULL;
+    unsigned short *temp2 = NULL;
+    unsigned short one[2] = {0, 1};
+    int temp1_size = 0;
+    int temp2_size = 0;
+    temp1 = add(num1, parts_num1, num2, parts_num2, &temp1_size);
+    temp2 = add(num2, parts_num2, one, 2, &temp2_size);
+    temp2 = sub(temp2, temp2_size, num1, parts_num1, &temp2_size);
+    res = multiply(temp1, temp1_size, temp2, temp2_size, &res_size);
+    res = devide_by_two(res, res_size, &res_size);
+    free(temp1);
+    free(temp2);
+    *out_size = res_size;
+    return res;
 }
-**/
+
+unsigned short * row_input(unsigned short *num1, int parts_num1, unsigned short *num2, int parts_num2, int *out_size) {
+    if (compare(num1, parts_num1, num2, parts_num2) == 0) {
+        *out_size = parts_num1;
+        return num1;
+    }
+    if (compare(num1, parts_num1, num2, parts_num2) == -1) {
+        return row(num1, parts_num1, num2, parts_num2, out_size);
+    }
+    if(compare(num1, parts_num1, num2, parts_num2) == 1) {
+        return row(num2, parts_num2, num1, parts_num1, out_size);
+    }
+}
+
 int main(void) {
-    char num[] = "-2";
-    size_t len = strlen(num);
-    int size = (len / 4) + 2;
-    unsigned short *digits = malloc(size * sizeof(unsigned short));
-    splitter(num, digits, size);
-    test_print(digits, size);
-    unsigned short test_num[3] = {1,100, 0};
-    digits = add(digits, size, test_num, 3, &size);
-    //digits = power(digits, size, 3, &size);
-    test_print(digits, size);
+    char s_num1[1000] = {};
+    char s_num2[1000] = {};
+    unsigned int Exp = 0;
+    int operation = 0;
+    printf("Введите операцию:\n1 - Сложение (a + b)\n2 - Вычитание(a-b)\n"
+           "3 - Умножение (a * b)\n4 - Возведение числа в степень (a ^ b)\n5 - Факториал числа (!a)\n6 - Сумма чисел на отрезке [a; b]\n");
+    scanf("%d", &operation);
+    if (operation > 6 ||  operation < 1) {
+        printf("Такой операции не задано!");
+        return 0;
+    }
+    printf("Введите число a: ");
+    scanf("%s", s_num1);
+    if (operation != 5 && operation != 4) {
+        printf("Введите число b: ");
+        scanf("%s", s_num2);
+    } else if (operation == 4) {
+        printf("Введите число b: ");
+        scanf("%d", &Exp);
+    }
+    int size, size1, size2;
+    unsigned short *num1 = splitter(s_num1, &size1);
+    unsigned short *num2 = splitter(s_num2, &size2);
+    unsigned short *res = NULL;
+    switch (operation) {
+        case 1:
+            res = add(num1, size1, num2, size2, &size);
+            printer(res, size);
+            free(res);
+            break;
+        case 2:
+            res = sub(num1, size1, num2, size2, &size);
+            printer(res, size);
+            free(res);
+            break;
+        case 3:
+            res = multiply(num1, size1, num2, size2, &size);
+            printer(res, size);
+            free(res);
+            break;
+        case 4:
+            res = power(num1, size1, Exp, &size);
+            printer(res, size);
+            free(res);
+            break;
+        case 5:
+            res = factorial(num1, size1, &size);
+            printer(res, size);
+            free(res);
+            break;
+        case 6:
+            res = row_input(num1, size1, num2, size2, &size);
+            printer(res, size);
+            free(res);
+            break;
+    }
+    return 0;
 }
