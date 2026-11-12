@@ -451,6 +451,10 @@ int main(void) {
     int size, size1, size2;
     unsigned short *num1 = splitter(s_num1, &size1);
     unsigned short *num2 = splitter(s_num2, &size2);
+    if (size1 > 1000 || size2 > 1000) {
+        printf("Числа слишком большие!");
+        return 0;
+    }
     unsigned short *res = NULL;
     switch (operation) {
         case 1:
