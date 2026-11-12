@@ -23,8 +23,12 @@ void printer(unsigned short* num, int size) {
         printf("0\n");
         return;
     }
-
-    char digits[1000];
+    int max_size = size * 5 + 3;
+    char *digits = malloc(max_size * sizeof (char));
+    if (!digits) {
+        printf("malloc failed\n");
+        return;
+    }
     int count = 0;
 
     unsigned short *temp = malloc(size * sizeof(unsigned short));
@@ -188,7 +192,9 @@ unsigned short* sub(unsigned short *num1, int parts_num1, unsigned short *num2, 
         return diff(num1, parts_num1, num2, parts_num2, out_size);
     }
     if(compare(num1, parts_num1, num2, parts_num2) == -1) {
-        return diff(num2, parts_num2, num1, parts_num1, out_size);
+        unsigned short * res = diff(num2, parts_num2, num1, parts_num1, out_size);
+        res[0] = num1[0] == 0 ? 1 : 0;
+        return res;
     }
     unsigned short * res = calloc(2, sizeof (unsigned short));
     if (!res) {
@@ -332,7 +338,7 @@ unsigned short * factorial(unsigned short *num1, int parts_num1, int *out_size) 
             break;
         }
     }
-    if (n > 449 || too_big) {
+    if (n > 10000 || too_big) {
         printf("Число для вычисления слишком большое!\n");
         *out_size = res_size;
         return res;
