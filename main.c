@@ -332,7 +332,7 @@ unsigned short * factorial(unsigned short *num1, int parts_num1, int *out_size) 
             break;
         }
     }
-    if (n > 810 || too_big) {
+    if (n > 449 || too_big) {
         printf("Число для вычисления слишком большое!\n");
         *out_size = res_size;
         return res;
