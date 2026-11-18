@@ -5,7 +5,6 @@
 
 #define BASE 65536
 
-
 void test_print(unsigned short *massive, int num) {
     printf("-----\n");
     for (int i = 0; i < num; i++) {
@@ -33,6 +32,7 @@ void printer(unsigned short* num, int size) {
 
     unsigned short *temp = malloc(size * sizeof(unsigned short));
     if (!temp) {
+        free(digits);
         printf("malloc failed\n");
         return;
     }
@@ -44,7 +44,6 @@ void printer(unsigned short* num, int size) {
 
     while (current_size > 1) {
         int rem = 0;
-
         for (int i = current_size - 1; i >= 1; i--) {
             unsigned int cur = rem * BASE + temp[i];
             temp[i] = (unsigned short)(cur / 10);
@@ -65,6 +64,7 @@ void printer(unsigned short* num, int size) {
     printf("\n");
 
     free(temp);
+    free(digits);
 }
 
 
@@ -221,7 +221,7 @@ unsigned short * add(unsigned short *num1, int parts_num1, unsigned short *num2,
         printf("calloc failed\n");
         return NULL;
     }
-    *out_size = 0;
+    *out_size = 2;
     return res;
 }
 
@@ -243,7 +243,13 @@ unsigned short * multiply(unsigned short *num1, int parts_num1, unsigned short *
             result[i + j - 1] = (unsigned short)(cur % BASE);
             carry = cur / BASE;
         }
-        result[i + parts_num2 - 1] += carry;
+        int k = i + parts_num2 - 1;
+        while (carry > 0 && k < size) {
+            unsigned long long cur = (unsigned long long)result[k] + carry;
+            result[k] = (unsigned short)(cur % BASE);
+            carry = (unsigned int)(cur / BASE);
+            k++;
+        }
     }
 
     int true_size = size;
@@ -403,7 +409,6 @@ unsigned short * row(unsigned short *num1, int parts_num1, unsigned short *num2,
         return res;
     }
 
-    //Реализовать функцию сравнения, т.к. если число A > B, то начало отрезка больше его конца и их надо поменять местами
     unsigned short *temp1 = NULL;
     unsigned short *temp2 = NULL;
     unsigned short one[2] = {0, 1};
